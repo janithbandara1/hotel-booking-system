@@ -198,9 +198,6 @@ export default function DailyBookingsReport() {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="px-3 py-2 border rounded-md"
           />
-          <Button onClick={fetchDailyBookings} variant="outline">
-            Refresh
-          </Button>
         </div>
       </div>
 
