@@ -5,99 +5,117 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DataTable } from '@/components/ui/data-table'
 import { ColumnDef } from '@tanstack/react-table'
-import { DollarSign, TrendingUp, Calendar, ArrowUpDown } from 'lucide-react'
+import { Calendar, DollarSign, TrendingUp, ArrowUpDown } from 'lucide-react'
 
-interface RevenueRecord {
+interface RevenueData {
   id: string
-  bookingId: string
   customerName: string
+  customerEmail: string
   roomName: string
+  checkIn: string
+  checkOut: string
   amount: number
-  paymentMethod: string
-  paymentDate: string
-  status: 'completed' | 'pending' | 'refunded'
+  status: string
+  createdAt: string
+  date: string
 }
 
-const columns: ColumnDef<RevenueRecord>[] = [
+interface DailyRevenue {
+  date: string
+  totalRevenue: number
+  bookings: RevenueData[]
+}
+
+const columns: ColumnDef<RevenueData>[] = [
   {
     accessorKey: 'customerName',
     header: ({ column }) => {
       return (
         <Button
-          variant='ghost'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Customer
-          <ArrowUpDown className='ml-2 h-4 w-4' />
+          <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
+    cell: ({ row }) => (
+      <div>
+        <div className="font-medium">{row.getValue('customerName')}</div>
+        <div className="text-sm text-muted-foreground">{row.original.customerEmail}</div>
+      </div>
+    ),
   },
   {
     accessorKey: 'roomName',
     header: ({ column }) => {
       return (
         <Button
-          variant='ghost'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Room
-          <ArrowUpDown className='ml-2 h-4 w-4' />
+          <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
+  },
+  {
+    accessorKey: 'checkIn',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Check-in
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => (
+      <span className="font-medium">
+        {new Date(row.getValue('checkIn')).toLocaleDateString()}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'checkOut',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Check-out
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => (
+      <span className="font-medium">
+        {new Date(row.getValue('checkOut')).toLocaleDateString()}
+      </span>
+    ),
   },
   {
     accessorKey: 'amount',
     header: ({ column }) => {
       return (
         <Button
-          variant='ghost'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Amount
-          <ArrowUpDown className='ml-2 h-4 w-4' />
+          <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
     cell: ({ row }) => (
-      <span className='font-medium'>${row.getValue('amount')}</span>
-    ),
-  },
-  {
-    accessorKey: 'paymentMethod',
-    header: ({ column }) => {
-      return (
-        <Button
-          variant='ghost'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        >
-          Payment Method
-          <ArrowUpDown className='ml-2 h-4 w-4' />
-        </Button>
-      )
-    },
-  },
-  {
-    accessorKey: 'paymentDate',
-    header: ({ column }) => {
-      return (
-        <Button
-          variant='ghost'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        >
-          Payment Date
-          <ArrowUpDown className='ml-2 h-4 w-4' />
-        </Button>
-      )
-    },
-    cell: ({ row }) => (
-      <span className='font-medium'>
-        {new Date(row.getValue('paymentDate')).toLocaleDateString()}
-      </span>
+      <span className="font-medium">${row.getValue('amount')}</span>
     ),
   },
   {
@@ -105,11 +123,11 @@ const columns: ColumnDef<RevenueRecord>[] = [
     header: ({ column }) => {
       return (
         <Button
-          variant='ghost'
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
           Status
-          <ArrowUpDown className='ml-2 h-4 w-4' />
+          <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
@@ -117,20 +135,49 @@ const columns: ColumnDef<RevenueRecord>[] = [
       const status = row.getValue('status') as string
       return (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          status === 'completed' ? 'bg-green-100 text-green-800' :
-          status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-          'bg-red-100 text-red-800'
+          status === 'paid' ? 'bg-green-100 text-green-800' :
+          status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+          'bg-gray-100 text-gray-800'
         }`}>
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </span>
       )
     },
   },
+  {
+    accessorKey: 'createdAt',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Booked At
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      )
+    },
+    cell: ({ row }) => (
+      <span className="font-medium">
+        {new Date(row.getValue('createdAt')).toLocaleString()}
+      </span>
+    ),
+  },
 ]
 
 export default function RevenueReport() {
-  const [revenueRecords, setRevenueRecords] = useState<RevenueRecord[]>([])
-  const [period, setPeriod] = useState('30')
+  const [revenueData, setRevenueData] = useState<{
+    totalRevenue: number
+    totalBookings: number
+    dailyRevenue: DailyRevenue[]
+    allBookings: RevenueData[]
+  } | null>(null)
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setDate(date.getDate() - 30) // Default to last 30 days
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
   const { data: session } = useSession()
   const router = useRouter()
 
@@ -139,94 +186,97 @@ export default function RevenueReport() {
       router.push('/')
       return
     }
-    fetchRevenueReport()
-  }, [session, router, period])
+    fetchRevenueData()
+  }, [session, router, startDate, endDate])
 
-  const fetchRevenueReport = async () => {
+  const fetchRevenueData = async () => {
     try {
-      const response = await fetch(`/api/admin/reports/revenue?days=${period}`)
+      const response = await fetch(`/api/admin/reports/revenue?startDate=${startDate}&endDate=${endDate}`)
       const data = await response.json()
-      setRevenueRecords(Array.isArray(data) ? data : [])
+      setRevenueData(data)
     } catch (error) {
-      console.error('Error fetching revenue report:', error)
-      setRevenueRecords([])
+      console.error('Error fetching revenue data:', error)
     }
   }
 
-  const totalRevenue = Array.isArray(revenueRecords) ? revenueRecords.reduce((sum, record) => sum + record.amount, 0) : 0
-  const completedPayments = Array.isArray(revenueRecords) ? revenueRecords.filter(r => r.status === 'completed').length : 0
-  const pendingPayments = Array.isArray(revenueRecords) ? revenueRecords.filter(r => r.status === 'pending').length : 0
-  const refundedPayments = Array.isArray(revenueRecords) ? revenueRecords.filter(r => r.status === 'refunded').length : 0
+  if (!revenueData) {
+    return <div>Loading...</div>
+  }
+
+  const { totalRevenue, totalBookings, dailyRevenue, allBookings } = revenueData
 
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
-        <h1 className='text-3xl font-bold'>Revenue Report</h1>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className='w-32'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='7'>Last 7 days</SelectItem>
-            <SelectItem value='30'>Last 30 days</SelectItem>
-            <SelectItem value='90'>Last 90 days</SelectItem>
-            <SelectItem value='365'>Last year</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Revenue Report</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="startDate" className="text-sm font-medium">From:</label>
+            <input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="endDate" className="text-sm font-medium">To:</label>
+            <input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+          </div>
+        </div>
       </div>
 
-      <div className='grid gap-4 md:grid-cols-4'>
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Total Revenue</CardTitle>
-            <DollarSign className='h-4 w-4 text-muted-foreground' />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>${totalRevenue.toFixed(2)}</div>
-            <p className='text-xs text-muted-foreground'>
-              from all payments
+            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              from {new Date(startDate).toLocaleDateString()} to {new Date(endDate).toLocaleDateString()}
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Completed Payments</CardTitle>
-            <TrendingUp className='h-4 w-4 text-green-600' />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold text-green-600'>{completedPayments}</div>
-            <p className='text-xs text-muted-foreground'>
-              successful transactions
+            <div className="text-2xl font-bold">{totalBookings}</div>
+            <p className="text-xs text-muted-foreground">
+              confirmed bookings
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Pending Payments</CardTitle>
-            <Calendar className='h-4 w-4 text-yellow-600' />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold text-yellow-600'>{pendingPayments}</div>
-            <p className='text-xs text-muted-foreground'>
-              awaiting completion
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Refunds</CardTitle>
-            <DollarSign className='h-4 w-4 text-red-600' />
-          </CardHeader>
-          <CardContent>
-            <div className='text-2xl font-bold text-red-600'>{refundedPayments}</div>
-            <p className='text-xs text-muted-foreground'>
-              refunded payments
+            <div className="text-2xl font-bold">
+              ${totalBookings > 0 ? (totalRevenue / totalBookings).toFixed(2) : '0.00'}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              per booking
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <DataTable columns={columns} data={revenueRecords} searchKey='customerName' />
+      {/* Revenue Details Table */}
+      <DataTable columns={columns} data={allBookings} searchKey="customerName" />
     </div>
   )
 }

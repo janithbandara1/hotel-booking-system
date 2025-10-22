@@ -136,7 +136,12 @@ const columns: ColumnDef<Cancellation>[] = [
 
 export default function CancellationsReport() {
   const [cancellations, setCancellations] = useState<Cancellation[]>([])
-  const [period, setPeriod] = useState('30')
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setDate(date.getDate() - 30) // Default to last 30 days
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
   const { data: session } = useSession()
   const router = useRouter()
 
@@ -146,11 +151,11 @@ export default function CancellationsReport() {
       return
     }
     fetchCancellations()
-  }, [session, router, period])
+  }, [session, router, startDate, endDate])
 
   const fetchCancellations = async () => {
     try {
-      const response = await fetch(`/api/admin/reports/cancellations?days=${period}`)
+      const response = await fetch(`/api/admin/reports/cancellations?startDate=${startDate}&endDate=${endDate}`)
       const data = await response.json()
       setCancellations(data)
     } catch (error) {
@@ -166,17 +171,28 @@ export default function CancellationsReport() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Cancellations Report</h1>
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-            <SelectItem value="365">Last year</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="startDate" className="text-sm font-medium">From:</label>
+            <input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="endDate" className="text-sm font-medium">To:</label>
+            <input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Summary Cards */}

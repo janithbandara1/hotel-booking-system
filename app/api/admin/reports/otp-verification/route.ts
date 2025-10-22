@@ -12,16 +12,22 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const days = parseInt(searchParams.get('days') || '30')
+  const startDate = searchParams.get('startDate')
+  const endDate = searchParams.get('endDate')
+
+  if (!startDate || !endDate) {
+    return NextResponse.json({ error: 'Start date and end date parameters are required' }, { status: 400 })
+  }
 
   try {
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - days)
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    end.setHours(23, 59, 59, 999)
 
     const bookings = await prisma.booking.findMany({
       where: {
         otpSentAt: { not: null },
-        createdAt: { gte: startDate }
+        createdAt: { gte: start, lte: end }
       },
       include: { user: true },
       orderBy: { createdAt: 'desc' }

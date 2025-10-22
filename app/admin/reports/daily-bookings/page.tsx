@@ -161,7 +161,12 @@ const columns: ColumnDef<Booking>[] = [
 
 export default function DailyBookingsReport() {
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setDate(date.getDate() - 30) // Default to last 30 days
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
   const { data: session } = useSession()
   const router = useRouter()
 
@@ -171,11 +176,11 @@ export default function DailyBookingsReport() {
       return
     }
     fetchDailyBookings()
-  }, [session, router, selectedDate])
+  }, [session, router, startDate, endDate])
 
   const fetchDailyBookings = async () => {
     try {
-      const response = await fetch(`/api/admin/reports/daily-bookings?date=${selectedDate}`)
+      const response = await fetch(`/api/admin/reports/daily-bookings?startDate=${startDate}&endDate=${endDate}`)
       const data = await response.json()
       setBookings(data)
     } catch (error) {
@@ -194,12 +199,26 @@ export default function DailyBookingsReport() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Daily Bookings Report</h1>
         <div className="flex items-center gap-4">
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 border rounded-md"
-          />
+          <div className="flex items-center gap-2">
+            <label htmlFor="startDate" className="text-sm font-medium">From:</label>
+            <input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="endDate" className="text-sm font-medium">To:</label>
+            <input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+          </div>
         </div>
       </div>
 
@@ -213,7 +232,7 @@ export default function DailyBookingsReport() {
           <CardContent>
             <div className="text-2xl font-bold">{totalBookings}</div>
             <p className="text-xs text-muted-foreground">
-              for {new Date(selectedDate).toLocaleDateString()}
+              from {new Date(startDate).toLocaleDateString()} to {new Date(endDate).toLocaleDateString()}
             </p>
           </CardContent>
         </Card>

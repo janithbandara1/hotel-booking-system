@@ -131,7 +131,12 @@ const columns: ColumnDef<RoomAvailability>[] = [
 
 export default function RoomAvailabilityReport() {
   const [rooms, setRooms] = useState<RoomAvailability[]>([])
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date()
+    date.setDate(date.getDate() + 7) // Default to next 7 days
+    return date.toISOString().split('T')[0]
+  })
   const { data: session } = useSession()
   const router = useRouter()
 
@@ -141,11 +146,11 @@ export default function RoomAvailabilityReport() {
       return
     }
     fetchRoomAvailability()
-  }, [session, router, selectedDate])
+  }, [session, router, startDate])
 
   const fetchRoomAvailability = async () => {
     try {
-      const response = await fetch(`/api/admin/reports/room-availability?date=${selectedDate}`)
+      const response = await fetch(`/api/admin/reports/room-availability?startDate=${startDate}&endDate=${endDate}`)
       const data = await response.json()
       setRooms(data)
     } catch (error) {
@@ -162,12 +167,26 @@ export default function RoomAvailabilityReport() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Room Availability Report</h1>
         <div className="flex items-center gap-4">
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 border rounded-md"
-          />
+          <div className="flex items-center gap-2">
+            <label htmlFor="startDate" className="text-sm font-medium">From:</label>
+            <input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="endDate" className="text-sm font-medium">To:</label>
+            <input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-2 border rounded-md"
+            />
+          </div>
         </div>
       </div>
 

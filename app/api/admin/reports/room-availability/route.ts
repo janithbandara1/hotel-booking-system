@@ -12,10 +12,11 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const date = searchParams.get('date') || new Date().toISOString().split('T')[0]
+  const startDate = searchParams.get('startDate') || new Date().toISOString().split('T')[0]
+  const endDate = searchParams.get('endDate') // Not used for room availability, but accepted for consistency
 
   try {
-    const selectedDate = new Date(date)
+    const selectedDate = new Date(startDate)
     const rooms = await prisma.room.findMany()
 
     // Get current bookings for the selected date
