@@ -82,6 +82,13 @@ export default function BookRoom() {
   const handleBook = async () => {
     setError('')
     setSuccess('')
+    
+    // Prevent duplicate booking creation
+    if (bookingId) {
+      setError('Booking already created. Please verify OTP.')
+      return
+    }
+    
     if (!room) {
       setError('Room not loaded')
       return
@@ -117,8 +124,11 @@ export default function BookRoom() {
       body: JSON.stringify({ bookingId, otp })
     })
     if (res.ok) {
-      setSuccess('Booking confirmed!')
-      router.push('/bookings')
+      const data = await res.json()
+      setSuccess('OTP verified! Redirecting to payment...')
+      setTimeout(() => {
+        router.push(`/payment?bookingId=${data.bookingId}`)
+      }, 1500)
     } else {
       const data = await res.json()
       setError(data.error || 'Invalid OTP')

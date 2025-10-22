@@ -26,5 +26,8 @@ export async function POST(req: NextRequest) {
     data: { status: 'confirmed' }
   })
 
-  return NextResponse.json({ message: 'Booking confirmed' })
+  return NextResponse.json({
+    message: 'OTP verified successfully. Proceed to payment.',
+    bookingId
+  })
 }

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Booking {
   id: string
@@ -16,7 +18,9 @@ interface Booking {
 
 export default function Bookings() {
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [paymentSuccess, setPaymentSuccess] = useState(false)
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     if (session) {
@@ -26,6 +30,14 @@ export default function Bookings() {
     }
   }, [session])
 
+  useEffect(() => {
+    if (searchParams.get('payment') === 'success') {
+      setPaymentSuccess(true)
+      // Remove the query parameter from URL
+      window.history.replaceState({}, '', '/bookings')
+    }
+  }, [searchParams])
+
   const handleCancel = async (id: string) => {
     await fetch(`/api/bookings/${id}`, { method: 'DELETE' })
     setBookings(bookings.filter(b => b.id !== id))
@@ -34,6 +46,8 @@ export default function Bookings() {
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'confirmed':
+        return 'default'
+      case 'paid':
         return 'default'
       case 'pending':
         return 'secondary'
@@ -54,6 +68,13 @@ export default function Bookings() {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
+      {paymentSuccess && (
+        <Alert className="border-green-200 bg-green-50">
+          <AlertDescription className="text-green-800">
+            Payment completed successfully! Your booking is now confirmed.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">My Bookings</h1>
         <p className="text-muted-foreground">Manage your room reservations</p>
@@ -73,7 +94,7 @@ export default function Bookings() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{booking.room.name}</CardTitle>
                   <Badge variant={getStatusVariant(booking.status)}>
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                    {booking.status === 'paid' ? 'Paid' : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                   </Badge>
                 </div>
                 <CardDescription>

@@ -22,6 +22,40 @@ export async function POST(req: NextRequest) {
   })
   if (!user || !user.phone) return NextResponse.json({ error: 'Phone not found' }, { status: 400 })
 
+  // Check if there's already a pending booking for this user and room with the same dates
+  const existingBooking = await prisma.booking.findFirst({
+    where: {
+      userId: user.id,
+      roomId,
+      checkIn: new Date(checkIn),
+      checkOut: new Date(checkOut),
+      status: {
+        in: ['pending', 'confirmed']
+      }
+    }
+  })
+
+  if (existingBooking) {
+    // Resend OTP instead of creating a new booking
+    const otp = generateOTP()
+    await prisma.booking.update({
+      where: { id: existingBooking.id },
+      data: {
+        otp,
+        otpSentAt: new Date()
+      }
+    })
+    
+    // Send SMS
+    await twilioClient.messages.create({
+      body: `Your OTP for booking is: ${otp}`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: user.phone
+    })
+    
+    return NextResponse.json({ booking: existingBooking })
+  }
+
   const otp = generateOTP()
 
   const booking = await prisma.booking.create({

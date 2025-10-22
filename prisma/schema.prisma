@@ -74,17 +74,20 @@ model Room {
 }
 
 model Booking {
-  id        String   @id @default(cuid())
-  userId    String
-  roomId    String
-  checkIn   DateTime
-  checkOut  DateTime
-  guests    Int?
-  status    String   @default("pending") // pending, confirmed, cancelled
-  otp       String?  // generated OTP
-  otpSentAt DateTime?
-  user      User     @relation(fields: [userId], references: [id])
-  room      Room     @relation(fields: [roomId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String
+  roomId        String
+  checkIn       DateTime
+  checkOut      DateTime
+  guests        Int?
+  status        String   @default("pending") // pending, confirmed, cancelled, paid
+  otp           String?  // generated OTP
+  otpSentAt     DateTime?
+  paymentIntentId String? // Stripe payment intent ID
+  paymentStatus String?  // Stripe payment status
+  amount        Float?   // Total amount paid
+  user          User     @relation(fields: [userId], references: [id])
+  room          Room     @relation(fields: [roomId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
