@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     // Get current bookings for the selected date
     const currentBookings = await prisma.booking.findMany({
       where: {
-        status: 'confirmed',
+        status: { in: ['confirmed', 'paid'] },
         checkIn: { lte: selectedDate },
         checkOut: { gt: selectedDate }
       },
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     // Get future bookings to determine next available dates
     const futureBookings = await prisma.booking.findMany({
       where: {
-        status: 'confirmed',
+        status: { in: ['confirmed', 'paid'] },
         checkIn: { gte: selectedDate }
       },
       include: { room: true },

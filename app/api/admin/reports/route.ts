@@ -36,19 +36,28 @@ export async function GET(request: Request) {
 
     // Calculate metrics
     const totalBookings = bookings.length
-    const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length
+    const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'paid').length
     const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length
     const pendingBookings = bookings.filter(b => b.status === 'pending').length
 
-    // Calculate revenue (simplified - in real app, would calculate based on nights stayed)
+    // Calculate revenue from confirmed and paid bookings
     const totalRevenue = bookings
-      .filter(b => b.status === 'confirmed')
-      .reduce((sum, booking) => sum + (booking.room?.price || 0), 0)
+      .filter(b => b.status === 'confirmed' || b.status === 'paid')
+      .reduce((sum, booking) => {
+        // Use the amount field if it exists, otherwise calculate from room price and nights
+        if (booking.amount) {
+          return sum + booking.amount
+        }
+        const checkIn = new Date(booking.checkIn)
+        const checkOut = new Date(booking.checkOut)
+        const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+        return sum + ((booking.room?.price || 0) * nights)
+      }, 0)
 
     // Calculate occupancy rate
     const totalRoomDays = rooms.length * days
     const bookedRoomDays = bookings
-      .filter(b => b.status === 'confirmed')
+      .filter(b => b.status === 'confirmed' || b.status === 'paid')
       .reduce((sum, booking) => {
         const checkIn = new Date(booking.checkIn)
         const checkOut = new Date(booking.checkOut)
@@ -87,10 +96,19 @@ export async function GET(request: Request) {
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0)
 
       const monthBookings = bookings.filter(b =>
-        b.createdAt >= monthStart && b.createdAt <= monthEnd && b.status === 'confirmed'
+        b.createdAt >= monthStart && b.createdAt <= monthEnd && (b.status === 'confirmed' || b.status === 'paid')
       )
 
-      const monthRevenue = monthBookings.reduce((sum, b) => sum + (b.room?.price || 0), 0)
+      const monthRevenue = monthBookings.reduce((sum, b) => {
+        // Use the amount field if it exists, otherwise calculate from room price and nights
+        if (b.amount) {
+          return sum + b.amount
+        }
+        const checkIn = new Date(b.checkIn)
+        const checkOut = new Date(b.checkOut)
+        const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+        return sum + ((b.room?.price || 0) * nights)
+      }, 0)
 
       monthlyRevenue.push({
         month: monthStart.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
@@ -100,8 +118,17 @@ export async function GET(request: Request) {
 
     // Room utilization
     const roomUtilization = rooms.map(room => {
-      const roomBookings = bookings.filter(b => b.roomId === room.id && b.status === 'confirmed')
-      const revenue = roomBookings.reduce((sum, b) => sum + room.price, 0)
+      const roomBookings = bookings.filter(b => b.roomId === room.id && (b.status === 'confirmed' || b.status === 'paid'))
+      const revenue = roomBookings.reduce((sum, b) => {
+        // Use the amount field if it exists, otherwise calculate from room price and nights
+        if (b.amount) {
+          return sum + b.amount
+        }
+        const checkIn = new Date(b.checkIn)
+        const checkOut = new Date(b.checkOut)
+        const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+        return sum + (room.price * nights)
+      }, 0)
 
       return {
         roomName: room.name,

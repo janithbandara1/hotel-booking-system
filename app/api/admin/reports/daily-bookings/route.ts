@@ -36,17 +36,24 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' }
     })
 
-    const formattedBookings = bookings.map(booking => ({
-      id: booking.id,
-      customerName: booking.user.name || booking.user.email,
-      customerEmail: booking.user.email,
-      roomName: booking.room.name,
-      checkIn: booking.checkIn.toISOString(),
-      checkOut: booking.checkOut.toISOString(),
-      totalAmount: booking.room.price,
-      status: booking.status as 'confirmed' | 'pending' | 'cancelled',
-      createdAt: booking.createdAt.toISOString()
-    }))
+    const formattedBookings = bookings.map(booking => {
+      const checkIn = new Date(booking.checkIn)
+      const checkOut = new Date(booking.checkOut)
+      const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+      const calculatedAmount = booking.room.price * nights
+
+      return {
+        id: booking.id,
+        customerName: booking.user.name || booking.user.email,
+        customerEmail: booking.user.email,
+        roomName: booking.room.name,
+        checkIn: booking.checkIn.toISOString(),
+        checkOut: booking.checkOut.toISOString(),
+        totalAmount: booking.amount || calculatedAmount,
+        status: booking.status as 'confirmed' | 'pending' | 'cancelled',
+        createdAt: booking.createdAt.toISOString()
+      }
+    })
 
     return NextResponse.json(formattedBookings)
   } catch (error) {

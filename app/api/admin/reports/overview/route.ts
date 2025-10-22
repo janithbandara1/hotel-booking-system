@@ -20,18 +20,15 @@ export async function GET() {
       where: { status: 'confirmed' }
     })
 
-    // Get total revenue from confirmed bookings (calculate based on room price and stay duration)
-    const confirmedBookingsData = await prisma.booking.findMany({
-      where: { status: 'confirmed' },
-      include: { room: true }
+    // Get total revenue from paid bookings
+    const paidBookings = await prisma.booking.findMany({
+      where: { 
+        amount: { not: null, gt: 0 }
+      },
+      select: { amount: true }
     })
 
-    const totalRevenue = confirmedBookingsData.reduce((sum, booking) => {
-      const checkIn = new Date(booking.checkIn)
-      const checkOut = new Date(booking.checkOut)
-      const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
-      return sum + (booking.room.price * nights)
-    }, 0)
+    const totalRevenue = paidBookings.reduce((sum, booking) => sum + (booking.amount || 0), 0)
 
     // Get total customers
     const totalCustomers = await prisma.user.count({

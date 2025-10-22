@@ -18,7 +18,7 @@ interface Booking {
   checkIn: string
   checkOut: string
   totalAmount: number
-  status: 'confirmed' | 'pending' | 'cancelled'
+  status: 'confirmed' | 'pending' | 'cancelled' | 'paid'
   createdAt: string
 }
 
@@ -129,11 +129,11 @@ const columns: ColumnDef<Booking>[] = [
       const status = row.getValue('status') as string
       return (
         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          status === 'confirmed' ? 'bg-green-100 text-green-800' :
+          status === 'confirmed' || status === 'paid' ? 'bg-green-100 text-green-800' :
           status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
           'bg-red-100 text-red-800'
         }`}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+          {status === 'paid' ? 'Paid' : status.charAt(0).toUpperCase() + status.slice(1)}
         </span>
       )
     },
@@ -184,8 +184,10 @@ export default function DailyBookingsReport() {
   }
 
   const totalBookings = bookings.length
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length
-  const totalRevenue = bookings.reduce((sum, booking) => sum + booking.totalAmount, 0)
+  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'paid').length
+  const totalRevenue = bookings
+    .filter(b => b.status === 'confirmed' || b.status === 'paid')
+    .reduce((sum, booking) => sum + booking.totalAmount, 0)
 
   return (
     <div className="space-y-6">
@@ -233,7 +235,7 @@ export default function DailyBookingsReport() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue}</div>
+            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               from all bookings
             </p>

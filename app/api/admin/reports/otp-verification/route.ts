@@ -31,8 +31,8 @@ export async function GET(request: Request) {
       id: booking.id,
       email: booking.user.email,
       otpSentAt: booking.otpSentAt?.toISOString() || '',
-      otpVerifiedAt: booking.status === 'confirmed' ? booking.updatedAt.toISOString() : undefined,
-      status: booking.status === 'confirmed' ? 'verified' as const :
+      otpVerifiedAt: (booking.status === 'confirmed' || booking.status === 'paid') ? booking.updatedAt.toISOString() : undefined,
+      status: (booking.status === 'confirmed' || booking.status === 'paid') ? 'verified' as const :
               booking.status === 'cancelled' ? 'expired' as const :
               'failed' as const,
       attempts: 1, // Assuming 1 attempt per booking

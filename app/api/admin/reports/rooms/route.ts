@@ -28,8 +28,16 @@ export async function GET(request: Request) {
 
     const roomUtilization = rooms.map(room => {
       const roomBookings = bookings.filter(b => b.roomId === room.id)
-      const confirmedBookings = roomBookings.filter(b => b.status === 'confirmed')
-      const totalRevenue = confirmedBookings.reduce((sum, b) => sum + room.price, 0)
+      const confirmedBookings = roomBookings.filter(b => b.status === 'confirmed' || b.status === 'paid')
+      const totalRevenue = confirmedBookings.reduce((sum, b) => {
+        if (b.amount) {
+          return sum + b.amount
+        }
+        const checkIn = new Date(b.checkIn)
+        const checkOut = new Date(b.checkOut)
+        const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+        return sum + (room.price * nights)
+      }, 0)
 
       // Calculate occupancy days
       const occupancyDays = confirmedBookings.reduce((sum, booking) => {

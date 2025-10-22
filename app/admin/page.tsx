@@ -13,6 +13,7 @@ interface Booking {
   checkIn: string
   checkOut: string
   status: string
+  amount?: number
   user: { name: string; email: string }
   room: { id: string; name: string }
   createdAt: string
@@ -96,11 +97,24 @@ export default function Admin() {
 
   const totalBookings = bookings.length
   const pendingBookings = bookings.filter(b => b.status === 'pending').length
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length
+  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'paid').length
   const availableRooms = rooms.filter(r => r.available).length
   const totalRevenue = bookings
-    .filter(b => b.status === 'confirmed')
-    .reduce((sum, b) => sum + (rooms.find(r => r.id === b.room.id)?.price || 0), 0)
+    .filter(b => b.status === 'confirmed' || b.status === 'paid')
+    .reduce((sum, b) => {
+      // Use the amount field if available, otherwise calculate from room price
+      if (b.amount) {
+        return sum + b.amount
+      }
+      const room = rooms.find(r => r.id === b.room.id)
+      if (room) {
+        const checkIn = new Date(b.checkIn)
+        const checkOut = new Date(b.checkOut)
+        const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+        return sum + (room.price * nights)
+      }
+      return sum
+    }, 0)
 
   return (
     <div className="space-y-6">
@@ -173,7 +187,7 @@ export default function Admin() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue}</div>
+            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               from confirmed bookings
             </p>

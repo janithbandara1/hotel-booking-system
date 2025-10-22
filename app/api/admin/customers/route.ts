@@ -30,10 +30,10 @@ export async function GET() {
     // Calculate additional stats for each customer
     const customers = users.map(user => {
       const totalSpent = user.bookings
-        .filter(booking => booking.status === 'confirmed')
+        .filter(booking => booking.status === 'confirmed' || booking.status === 'paid')
         .reduce((sum, booking) => {
-          // Note: We'd need room price here, but for now we'll use a placeholder
-          return sum + 100 // Placeholder - in real app, get from room.price
+          // Use the amount field if available, otherwise use placeholder
+          return sum + (booking.amount || 100)
         }, 0)
 
       const lastBooking = user.bookings.length > 0

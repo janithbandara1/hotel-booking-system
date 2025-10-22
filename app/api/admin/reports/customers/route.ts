@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       include: {
         bookings: {
           where: { createdAt: { gte: startDate } },
+          include: { room: true },
           orderBy: { createdAt: 'desc' }
         }
       }
@@ -42,16 +43,21 @@ export async function GET(request: Request) {
     ).length
 
     const activeCustomers = customers.filter(customer =>
-      customer.bookings.some(booking => booking.status === 'confirmed')
+      customer.bookings.some(booking => booking.status === 'confirmed' || booking.status === 'paid')
     ).length
 
     // Top customers by spending
     const topCustomers = customers
       .map(customer => {
-        const confirmedBookings = customer.bookings.filter(b => b.status === 'confirmed')
+        const confirmedBookings = customer.bookings.filter(b => b.status === 'confirmed' || b.status === 'paid')
         const totalSpent = confirmedBookings.reduce((sum, booking) => {
-          // In a real app, you'd get this from the booking/room relationship
-          return sum + 100 // Placeholder
+          if (booking.amount) {
+            return sum + booking.amount
+          }
+          const checkIn = new Date(booking.checkIn)
+          const checkOut = new Date(booking.checkOut)
+          const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+          return sum + (booking.room.price * nights)
         }, 0)
 
         const lastBooking = customer.bookings[0]?.createdAt.toISOString() || ''

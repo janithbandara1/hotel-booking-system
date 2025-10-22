@@ -75,7 +75,7 @@ export default function AdminCustomers() {
       header: 'Confirmed',
       cell: ({ row }) => {
         const bookings = row.original.bookings
-        const confirmedCount = bookings.filter(b => b.status === 'confirmed').length
+        const confirmedCount = bookings.filter(b => b.status === 'confirmed' || b.status === 'paid').length
         return <Badge variant="default">{confirmedCount}</Badge>
       },
     },

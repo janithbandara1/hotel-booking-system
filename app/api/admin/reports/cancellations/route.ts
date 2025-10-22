@@ -30,19 +30,26 @@ export async function GET(request: Request) {
       orderBy: { updatedAt: 'desc' }
     })
 
-    const cancellations = cancelledBookings.map(booking => ({
-      id: booking.id,
-      bookingId: booking.id,
-      customerName: booking.user.name || booking.user.email,
-      customerEmail: booking.user.email,
-      roomName: booking.room.name,
-      cancellationDate: booking.updatedAt.toISOString(),
-      originalCheckIn: booking.checkIn.toISOString(),
-      originalCheckOut: booking.checkOut.toISOString(),
-      refundAmount: booking.room.price, // Assuming full refund for cancelled bookings
-      cancellationReason: 'Customer request', // Default reason
-      processedBy: 'System' // Could be admin who processed
-    }))
+    const cancellations = cancelledBookings.map(booking => {
+      const checkIn = new Date(booking.checkIn)
+      const checkOut = new Date(booking.checkOut)
+      const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+      const calculatedAmount = booking.room.price * nights
+
+      return {
+        id: booking.id,
+        bookingId: booking.id,
+        customerName: booking.user.name || booking.user.email,
+        customerEmail: booking.user.email,
+        roomName: booking.room.name,
+        cancellationDate: booking.updatedAt.toISOString(),
+        originalCheckIn: booking.checkIn.toISOString(),
+        originalCheckOut: booking.checkOut.toISOString(),
+        refundAmount: booking.amount || calculatedAmount, // Use paid amount or calculated
+        cancellationReason: 'Customer request', // Default reason
+        processedBy: 'System' // Could be admin who processed
+      }
+    })
 
     return NextResponse.json(cancellations)
   } catch (error) {
